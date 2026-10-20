@@ -1,0 +1,68 @@
+/* Developer test harness, not required to play. Uses an externally installed Playwright. */
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'/opt/codex/cua_node/lib/node_modules/playwright');
+const root=path.resolve(__dirname,'..');
+const results=[],errors=[],requests=[];
+function record(name,detail){results.push({name,status:'passed',detail});console.log('PASS',name,detail||'')}
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const context=await browser.newContext({viewport:{width:1280,height:800},offline:true});
+ const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/^https?:/.test(r.url()))requests.push(r.url())});
+ let fileProtocol=false;
+ try{await page.goto('file://'+root+'/index.html');fileProtocol=true;}catch(e){if(!e.message.includes('ERR_BLOCKED_BY_ADMINISTRATOR'))throw e;results.push({name:'Direct file:// navigation',status:'blocked',detail:'Installed Chromium administrative URL policy blocks file://. Offline inline-document execution used below.'});await page.close();}
+ const p=fileProtocol?page:await context.newPage();if(p!==page){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='log')console.log('PAGE',m.text())});p.on('request',r=>{if(/^https?:/.test(r.url()))requests.push(r.url())});await p.setContent(fs.readFileSync(path.join(root,'index.html'),'utf8'),{waitUntil:'load',timeout:60000})}
+ await p.waitForFunction(()=>window.__SAVANNA_READY__,{timeout:60000});record('Offline standalone boot',{fileProtocol,ready:true});
+ const shape=await p.evaluate(()=>({heroes:game.heroes.map(h=>({id:h.id,parts:h.model.children.length,legs:h.model.userData.legs.length,head:h.model.userData.head.children.length})),world:game.world.colliders.length,locations:SF.LOCATIONS.length,draw:game.renderer.info.render.calls,storage:game.save.available}));assert.deepEqual(shape.heroes.map(h=>h.id),['kion','fuli','jasiri']);assert(shape.heroes.every(h=>h.legs===4&&h.head===1));record('Three separate articulated 3D heroes and world',shape);
+ await p.screenshot({path:path.join(root,'tests/menu.png')});
+ await p.locator('#newBtn').click();await p.keyboard.press('Enter');await p.waitForFunction(()=>game.started&&!game.cutscene);
+ // Real key events: movement, sprint, jump, switching, panel close.
+ let before=await p.evaluate(()=>({x:game.hero.x,z:game.hero.z}));await p.keyboard.down('KeyW');await p.waitForFunction(b=>Math.hypot(game.hero.x-b.x,game.hero.z-b.z)>1,before,{timeout:10000}).catch(async e=>{console.log('MOVE DEBUG',await p.evaluate(()=>({paused:game.paused,menu:game.ui.menuOpen,panel:game.ui.panel,can:game.canControl(),keys:[...game.input.keys],pos:[game.hero.x,game.hero.z],load:document.getElementById('loadText').textContent})));throw e});await p.keyboard.up('KeyW');let after=await p.evaluate(()=>({x:game.hero.x,z:game.hero.z}));assert(Math.hypot(before.x-after.x,before.z-after.z)>.5);record('WASD moves player through rendered world');
+ await p.keyboard.press('Space');await p.waitForFunction(()=>game.hero.y>SF.height(game.hero.x,game.hero.z)+.1);record('Jump has vertical motion');
+ const a=await p.evaluate(()=>({x:game.heroes[0].x,z:game.heroes[0].z}));await p.keyboard.press('Digit2');await p.waitForFunction(()=>game.active===1);assert(await p.evaluate(()=>game.heroes[0].model.parent===game.scene&&game.hero.sprint>game.heroes[0].sprint));record('Switch to faster Fuli; Kion remains in world');
+ await p.keyboard.press('Digit3');await p.waitForFunction(()=>game.active===2);await p.keyboard.press('KeyF');await p.waitForFunction(()=>game.hero.activeAbility>0);record('Jasiri instinct activates with finite energy');
+ await p.keyboard.press('KeyM');await p.waitForFunction(()=>game.ui.panel==='map');await p.locator('#bigMap').click({position:{x:100,y:100}});assert(await p.evaluate(()=>!!game.waypoint));await p.keyboard.press('Escape');await p.waitForFunction(()=>game.ui.panel===null);record('Map marks world coordinates and closes');
+ // Deterministic simulation uses the production update path, no mission completion mutation.
+ const mechanics=await p.evaluate(()=>{
+  const g=game,checks=[];g.ui.resume();g.active=0;g.hero.x=-5;g.hero.z=20;g.hero.y=SF.height(-5,20);g.hero.hp=g.hero.maxHp;g.hero.wanted=0;g.hero.heat=0;
+  function ok(v,msg){if(!v)throw Error(msg);checks.push(msg)}
+  function frames(n){for(let i=0;i<n;i++)g.update(1/30)}
+  const e=g.npcs.find(e=>e.id==='wild0');e.x=g.hero.x;e.z=g.hero.z-3;e.y=SF.height(e.x,e.z);e.hp=e.maxHp;g.hero.heading=Math.PI;g.hero.cooldown=0;const hp=e.hp;g.combat.attack();ok(e.hp<hp,'Directional melee damages a nearby animal');ok(g.hero.wanted>=1,'Witnesses report crime');
+  while(g.hero.wanted<5)g.combat.crime(g.hero,1);ok(g.hero.wanted===5,'Wanted level capped at five');
+  const guard=g.npcs.find(e=>e.guard);guard.x=g.hero.x;guard.z=g.hero.z+15;guard.heading=Math.PI;const d=SF.dist(guard,g.hero);g.ai.update(.3);ok(SF.dist(guard,g.hero)<d,'Lion guard actually pursues target');
+  g.active=1;ok(g.heroes[0].wanted===5,'Switching does not erase original hero wanted level');g.active=0;
+  g.hero.x=-325;g.hero.z=-320;g.hero.y=SF.height(-325,-320);for(let i=0;i<1200;i++)g.combat.update(1/30);ok(g.hero.wanted===0,'Wanted level clears after loss of sight and search time');
+  g.hero.x=-30;g.hero.z=20;g.hero.y=SF.height(-30,20);g.hero.hp=g.hero.maxHp;g.hero.special=100;g.hero.activeAbility=0;g.hero.heading=0;const foe=g.spawnEnemy(-30,29,'test');g.combat.ability();ok(foe.hp===0&&g.hero.special<100,'Roar damages in its forward cone and consumes energy');g.removeEntity(foe);
+  const test={x:0,z:0,y:0,vx:5,vz:0};const c=g.world.addCollider(0,0,3,10);g.world.resolve(test,1);ok(Math.hypot(test.x,test.z)>=3.99,'Solid obstacle pushes character outside collider');
+  g.ui.talk(g.npcs.find(n=>n.id==='fuli')||g.heroes[1]);ok(g.ui.dialogueOpen,'Contextual dialogue opens');g.ui.closeDialogue();ok(!g.paused&&!g.ui.dialogueOpen,'Dialogue closes and returns control');
+  const meeting=g.npcs.find(n=>n.id==='bunga');meeting.meeting={x:76,z:55};const old={x:meeting.x,z:meeting.z};g.ai.update(.4);ok(SF.dist(old,meeting)>.01,'Invited NPC physically walks toward meeting');meeting.meeting=null;
+  g.active=0;g.hero.hp=1;g.combat.damage(g.hero,10,{name:'Тест',guard:true});ok(g.deadTimer>0&&!document.getElementById('dead').classList.contains('hidden'),'Death screen appears');frames(125);ok(g.hero.hp===g.hero.maxHp&&SF.dist(g.hero,{x:-102,z:85})<2,'Dead hero respawns at Rafiki');ok(g.npcs.find(n=>n.id==='rafiki').memory.kion.death!==undefined,'Rafiki remembers witnessed resurrection');
+  const hour=g.weather.hour;g.weather.update(10);ok(g.weather.hour!==hour,'Day/night time advances');g.weather.set(5);g.weather.update(.1);ok(g.weather.rain.visible,'Storm produces visible rain');g.weather.set(0);
+  const saved=JSON.parse(JSON.stringify(g.save.data()));g.hero.x+=20;g.save.load(saved);ok(Math.abs(g.hero.x-saved.heroes[saved.active].x)<.001,'Save round-trip restores positions');let reject=false;try{g.save.load({version:99})}catch{reject=true}ok(reject,'Malformed save is rejected');
+  return checks;
+ });mechanics.forEach(x=>record(x));
+ // Save test reports separately from source and screenshots.
+ await p.screenshot({path:path.join(root,'tests/game.png')});
+ const missionResult=await p.evaluate(()=>{
+  const g=game,log=[];g.ui.resume();g.newGame();g.finishCinematic();
+  const step=()=>{g.update(1/30);if(g.deadTimer>0)throw Error('Unexpected death during mission '+g.missions.active+' stage '+g.missions.stage+' '+JSON.stringify({hero:g.hero.id,death:g.hero.deathLog,completed:g.missions.completed}))};
+  function frames(n){for(let i=0;i<n;i++)step()}
+  function key(code){g.input.pressed.add(code);g.handleInput();g.input.clear()}
+  function go(p,actor=g.hero){actor.x=p.x;actor.z=p.z;actor.y=SF.height(p.x,p.z);actor.vx=actor.vz=0;}
+  function fight(){let rounds=0;while(g.missions.kind==='fight'&&rounds++<12){const m=g.missions;const enemies=[...m.spawned,...m.borrowed.map(b=>b.e)].filter(e=>e.hp>0);if(!enemies.length){step();continue}const e=enemies[0];go({x:e.x,z:e.z+7});g.hero.heading=Math.PI;if(g.hero.special>=45&&g.hero.activeAbility<=0){key('KeyF');}else{go({x:e.x,z:e.z+3.9});g.hero.heading=Math.PI;key('Attack');}frames(18);if(g.missions.failed)throw Error('Fight failed');}if(g.missions.kind==='fight')throw Error('Fight failed to end');}
+  function begin(id){go(SF.MISSION_DEFS[id].start);key('KeyE');if(!g.cutscene)throw Error('Missing intro '+id);key('Enter');log.push('Mission '+(id+1)+' started via interaction');}
+  begin(0);go(g.missions.target());step();fight();if(g.missions.kind!=='chase')throw Error('Expected chase');
+  // Run Fuli using production movement at full sprint, continually facing the fleeing target.
+  key('KeyF');g.input.keys.add('KeyW');g.input.keys.add('ShiftLeft');for(let i=0;i<1200&&g.missions.kind==='chase';i++){const target=g.missions.target();g.input.yaw=Math.atan2(target.x-g.hero.x,target.z-g.hero.z)+Math.PI;step();if(SF.dist(g.hero,target)<7.8)key('KeyE');}g.input.keys.clear();if(g.missions.kind!=='track')throw Error('Chase did not finish');go(g.missions.target());key('KeyF');key('KeyE');if(!g.cutscene)throw Error('Missing mission 1 ending');key('Enter');if(!g.missions.completed.includes(0))throw Error('Mission 1 incomplete');log.push('Mission 1: combat, real simulated chase, instinct intercept, ending');
+  begin(1);for(let i=0;i<1000&&!g.car.arrived;i++)step();if(!g.car.arrived)throw Error('Truck never arrived');go({x:g.car.x+4,z:g.car.z});key('KeyE');if(!g.ui.dialogueOpen)throw Error('Trevor dialogue missing');document.querySelector('#dialogueOptions button').click();document.querySelector('#dialogueOptions button').click();document.querySelector('#dialogueOptions button').click();if(g.missions.kind!=='board')throw Error('Dialogue did not unlock boarding');key('KeyE');if(!g.car.riding||g.missions.kind!=='drive')throw Error('Board failed');
+  // Actual vehicle physics/steering. Assisted checkpoint placement keeps the test bounded.
+  const oldCar={x:g.car.x,z:g.car.z};g.input.keys.add('KeyW');frames(45);g.input.keys.add('KeyA');const angle=g.car.heading;frames(30);g.input.keys.clear();if(SF.dist(oldCar,g.car)<3||Math.abs(g.car.heading-angle)<.1)throw Error('Car movement or steering broken');
+  let points=0;while(g.missions.kind==='drive'&&points++<8){go(g.missions.target(),g.car);g.car.speed=0;step();}if(g.missions.kind!=='exit')throw Error('Driving route failed');key('KeyE');if(g.car.riding)throw Error('Exit failed');if(g.cutscene)key('Enter');if(!g.missions.completed.includes(1)||!g.contacts.has('trevor'))throw Error('Trevor contact not unlocked');log.push('Mission 2: arriving vehicle, interactive dialogue, seating, physics, five checkpoints, exit, contact');
+  // Mission driving through wildlife can earn a real wanted level. Hide in a cave and let the real search timer expire before calling Trevor.
+  go({x:-228,z:-108});for(let i=0;i<900&&g.hero.wanted;i++)step();if(g.hero.wanted)throw Error('Search system failed to clear mission-driving wanted level');log.push('Driving violations persist until the player breaks sight and the search cools down');g.car.callCooldown=0;g.car.call();for(let i=0;i<1000&&!g.car.arrived;i++)step();if(!g.car.arrived)throw Error('Trevor recall never arrives');log.push('Trevor contact recalls an actually moving pickup');
+  begin(2);go(g.missions.target());step();fight();if(g.missions.kind!=='track')throw Error('Expected scout phase');go(g.missions.target());key('KeyF');key('KeyE');if(g.missions.kind!=='sprint')throw Error('Scout did not open route');key('KeyF');for(let i=0;i<3;i++){go(g.missions.target());step();}fight();if(g.missions.kind!=='runes')throw Error('Expected runes');key('KeyF');for(let i=0;i<3;i++){go(g.missions.target());key('KeyE');}if(g.missions.kind!=='sprint')throw Error('Expected rescue sprint');key('KeyF');for(let i=0;i<3;i++){go(g.missions.target());step();}if(g.missions.kind!=='roar')throw Error('Expected final roar');go(g.missions.target());g.hero.heading=Math.atan2(265-g.hero.x,-309-g.hero.z);frames(35);key('KeyF');if(!g.cutscene)throw Error('Scar not defeated by roar');key('Enter');if(g.missions.completed.length!==3||g.missions.active!==null)throw Error('Story failed to end');log.push('Mission 3: breach, scouting, timed route, four boss phases, roar, ending');
+  const old={x:g.hero.x,z:g.hero.z};g.input.keys.add('KeyW');frames(60);g.input.keys.clear();if(SF.dist(old,g.hero)<1)throw Error('Free roam blocked after story');log.push('Free roaming continues after all three missions');
+  g.save.load(JSON.parse(JSON.stringify(g.save.data())));if(g.missions.completed.length!==3||!g.contacts.has('trevor'))throw Error('Progress not persistent');log.push('Save restores completed story and unlocked Trevor contact');return log;
+ });missionResult.forEach(x=>record(x));
+ assert.equal(requests.length,0,'Unexpected HTTP request');record('Zero HTTP(S) requests during offline play');assert.equal(errors.length,0,errors.join('\n'));record('No uncaught JavaScript errors');
+ const report={timestamp:new Date().toISOString(),results,errors,requests};fs.writeFileSync(path.join(root,'tests/results.json'),JSON.stringify(report,null,2));await browser.close();
+})().catch(e=>{console.error(e);fs.writeFileSync(path.join(root,'tests/results.json'),JSON.stringify({timestamp:new Date().toISOString(),results,errors,failure:e.message},null,2));process.exit(1)});

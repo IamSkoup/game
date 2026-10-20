@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#192720"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231b3023'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-size='44' fill='%23e7c58a'%3ES%3C/text%3E%3C/svg%3E"><title>THE LION GUARD · SAVANNA FREEDOM</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<canvas id="world" aria-label="Трёхмерный мир саванны"></canvas>
+<div id="vignette"></div><div id="speedFX"></div><div id="instinctFX"></div>
+<div id="loading"><span class="sigil">✦</span><h2>Саванна просыпается</h2><p id="loadText">Создаём мир…</p></div>
+<section id="menu" class="screen hidden">
+ <header class="brand"><span class="crest">♜</span><span>THE LION GUARD<small>НЕКОММЕРЧЕСКАЯ ФАНАТСКАЯ ИГРА</small></span></header>
+ <div class="menu-content"><p class="eyebrow">ЗЕМЛИ ПРАЙДА · ВТОРОЙ СЕЗОН</p><h1>SAVANNA<br><em>FREEDOM</em></h1><p class="intro">Три героя. Одна саванна.<br>Твоя история за горизонтом.</p>
+ <nav><button id="continueBtn" class="primary">Продолжить <span>↗</span></button><button id="newBtn">Новая игра <span>→</span></button><button data-panel="map">Карта мира <span>↗</span></button><button data-panel="characters">Персонажи <span>↗</span></button><button data-panel="contacts">Контакты <span>↗</span></button><button data-panel="stats">Статистика <span>↗</span></button><button data-panel="settings">Настройки <span>↗</span></button><button data-panel="controls">Управление <span>↗</span></button><button id="loadBtn">Загрузить сохранение <span>↗</span></button></nav></div>
+ <div class="menu-note"><i></i> ЖИВОЙ ОТКРЫТЫЙ МИР<span>Исследуй. Защищай. Выбирай свой путь.</span></div>
+ <footer><span>01 / САВАННА ЖДЁТ</span><span>АВТОНОМНАЯ ВЕРСИЯ · 1.0</span></footer>
+</section>
+<div id="hud" class="hidden">
+ <div id="top-left"><span class="tiny">ЗЕМЛИ ПРАЙДА</span><div id="region">Равнины саванны</div><span id="clock">09:00 · Ясно</span></div>
+ <div id="wanted"><div id="stars">☆☆☆☆☆</div><span id="wantedText">СВОБОДНОЕ ИССЛЕДОВАНИЕ</span></div>
+ <div id="objective"><span class="eyebrow" id="missionTitle">ТВОЯ САВАННА</span><div id="objectiveText">Посети логово Хранителей, чтобы начать историю.</div><span id="objectiveDistance"></span></div>
+ <div id="mapBlock"><div class="compass">С</div><canvas id="minimap" width="220" height="220"></canvas><div class="meters"><div><i id="hpBar"></i></div><div><i id="staminaBar"></i></div><div><i id="specialBar"></i></div></div><div id="meterLabels">ЗДОРОВЬЕ · ВЫНОСЛИВОСТЬ · СПОСОБНОСТЬ</div></div>
+ <div id="heroCard"><span class="tiny" id="heroRole">ЛИДЕР ХРАНИТЕЛЕЙ</span><h2 id="heroName">Кайон</h2><span id="abilityHint">F · Рык Предков</span><div id="heroState"></div><p><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> сменить героя · <kbd>M</kbd> карта</p></div>
+ <div id="interaction"></div><div id="subtitle"></div><div id="toast"></div><div id="crosshair">·</div><div id="fps"></div>
+</div>
+<div id="wheel" class="hidden"><div class="wheel-inner"><p class="eyebrow">ВЫБЕРИ СВОЙ ПУТЬ</p><div id="wheelCards"></div><span>Отпусти Alt, чтобы вернуться в мир</span></div></div>
+<section id="panel" class="hidden"><div class="panel-head"><div><p class="eyebrow">SAVANNA FREEDOM</p><h2 id="panelTitle"></h2></div><button id="closePanel">Закрыть <kbd>Esc</kbd></button></div><div id="panelContent"></div></section>
+<section id="dialogue" class="hidden"><span class="eyebrow" id="speaker"></span><p id="speech"></p><div id="dialogueOptions"></div></section>
+<div id="banner" class="hidden"><div id="bannerTitle"></div><p id="bannerText"></p></div>
+<div id="dead" class="hidden"><h1>МЁРТВ</h1><p>Круг Жизни ещё не закончен</p></div><div id="cinemaTop"></div><div id="cinemaBottom"></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+<script src="vendor/three.min.js"></script><script src="js/core.js"></script><script src="js/world.js"></script><script src="js/systems.js"></script><script src="js/missions.js"></script><script src="js/ui.js"></script><script src="js/game.js"></script>
+</body></html>

@@ -1,0 +1,190 @@
+{
+  "timestamp": "2026-10-20T20:02:20.061Z",
+  "results": [
+    {
+      "name": "Direct file:// navigation",
+      "status": "blocked",
+      "detail": "Installed Chromium administrative URL policy blocks file://. Offline inline-document execution used below."
+    },
+    {
+      "name": "Offline standalone boot",
+      "status": "passed",
+      "detail": {
+        "fileProtocol": false,
+        "ready": true
+      }
+    },
+    {
+      "name": "Three separate articulated 3D heroes and world",
+      "status": "passed",
+      "detail": {
+        "heroes": [
+          {
+            "id": "kion",
+            "parts": 7,
+            "legs": 4,
+            "head": 1
+          },
+          {
+            "id": "fuli",
+            "parts": 7,
+            "legs": 4,
+            "head": 1
+          },
+          {
+            "id": "jasiri",
+            "parts": 7,
+            "legs": 4,
+            "head": 1
+          }
+        ],
+        "world": 349,
+        "locations": 15,
+        "draw": 167,
+        "storage": false
+      }
+    },
+    {
+      "name": "WASD moves player through rendered world",
+      "status": "passed"
+    },
+    {
+      "name": "Jump has vertical motion",
+      "status": "passed"
+    },
+    {
+      "name": "Switch to faster Fuli; Kion remains in world",
+      "status": "passed"
+    },
+    {
+      "name": "Jasiri instinct activates with finite energy",
+      "status": "passed"
+    },
+    {
+      "name": "Map marks world coordinates and closes",
+      "status": "passed"
+    },
+    {
+      "name": "Directional melee damages a nearby animal",
+      "status": "passed"
+    },
+    {
+      "name": "Witnesses report crime",
+      "status": "passed"
+    },
+    {
+      "name": "Wanted level capped at five",
+      "status": "passed"
+    },
+    {
+      "name": "Lion guard actually pursues target",
+      "status": "passed"
+    },
+    {
+      "name": "Switching does not erase original hero wanted level",
+      "status": "passed"
+    },
+    {
+      "name": "Wanted level clears after loss of sight and search time",
+      "status": "passed"
+    },
+    {
+      "name": "Roar damages in its forward cone and consumes energy",
+      "status": "passed"
+    },
+    {
+      "name": "Solid obstacle pushes character outside collider",
+      "status": "passed"
+    },
+    {
+      "name": "Contextual dialogue opens",
+      "status": "passed"
+    },
+    {
+      "name": "Dialogue closes and returns control",
+      "status": "passed"
+    },
+    {
+      "name": "Invited NPC physically walks toward meeting",
+      "status": "passed"
+    },
+    {
+      "name": "Death screen appears",
+      "status": "passed"
+    },
+    {
+      "name": "Dead hero respawns at Rafiki",
+      "status": "passed"
+    },
+    {
+      "name": "Rafiki remembers witnessed resurrection",
+      "status": "passed"
+    },
+    {
+      "name": "Day/night time advances",
+      "status": "passed"
+    },
+    {
+      "name": "Storm produces visible rain",
+      "status": "passed"
+    },
+    {
+      "name": "Save round-trip restores positions",
+      "status": "passed"
+    },
+    {
+      "name": "Malformed save is rejected",
+      "status": "passed"
+    },
+    {
+      "name": "Mission 1 started via interaction",
+      "status": "passed"
+    },
+    {
+      "name": "Mission 1: combat, real simulated chase, instinct intercept, ending",
+      "status": "passed"
+    },
+    {
+      "name": "Mission 2 started via interaction",
+      "status": "passed"
+    },
+    {
+      "name": "Mission 2: arriving vehicle, interactive dialogue, seating, physics, five checkpoints, exit, contact",
+      "status": "passed"
+    },
+    {
+      "name": "Driving violations persist until the player breaks sight and the search cools down",
+      "status": "passed"
+    },
+    {
+      "name": "Trevor contact recalls an actually moving pickup",
+      "status": "passed"
+    },
+    {
+      "name": "Mission 3 started via interaction",
+      "status": "passed"
+    },
+    {
+      "name": "Mission 3: breach, scouting, timed route, four boss phases, roar, ending",
+      "status": "passed"
+    },
+    {
+      "name": "Free roaming continues after all three missions",
+      "status": "passed"
+    },
+    {
+      "name": "Save restores completed story and unlocked Trevor contact",
+      "status": "passed"
+    },
+    {
+      "name": "Zero HTTP(S) requests during offline play",
+      "status": "passed"
+    },
+    {
+      "name": "No uncaught JavaScript errors",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "requests": []
+}
